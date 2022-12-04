@@ -1,0 +1,127 @@
+---
+title: "Reporte final de "Venta de televisores""
+author: "Sebastian Rodriguez"
+date: "2022-11-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+t = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+ventas = c(4.8, 4.1, 6, 6.5, 5.8, 5.2, 6.8, 7.4, 6, 5.6, 7.5, 7.8, 6.3, 5.9, 8, 8.4)
+y = ventas
+n = 16
+```
+En primera instancia hay que considerar que tenemos un conjunto de datos que representa la venta de televisores en el curso de 4 años considerando el los periodos de 2016, 2017, 2018 y 2019. Cada año está dividido en 4 temporadas del año, por lo que para cada año se tienen 4 datos representando las ventas de dicha temporada.
+
+
+# Análisis de tendencias
+```{r}
+x= ts(ventas, frequency = 4, start(c(2016,1)))
+plot.ts(x, col = "red")
+T = decompose(x)
+plot(T, col ="blue")
+```
+Esta primera gráfica representa los datos en primera instancia. Esta nos permite visualizar cómo se comportan los datos en cada año. Si tomamos en cuenta el primer año por ejemplo, podemos interpretar que empezó con una caída de ventas. A mediados ya sube los números teniendo el pico de ventas al final del año. Antes de caer nuevamente para empezar el nuevo año.
+Ahora bien, en esta gráfica podemos descomponer los datos más relevantes de una manera visual. Se presentan 4 sub gráficas: observed, trend, seasonal y random. Aquí el aspecto más relevante a analizar es la gráfica de tendencia. Podemos interpretar con los datos observados cómo se comportan los datos tal y como están representados. Sin embargo, la gráfica de tendencia nos permite visualizar cómo es que las ventas se comportan como un total.  A esto me refiero que mientras que en la gráfica inicial se pueden presentar montañas y muchos cambios en los datos, la tendencia nos da a entender que cada año, en promedio las ventas aumentan. Dándonos a entender que cada año se genera más dinero el ano anterior como total.
+
+
+```{r}
+T$seasonal
+```
+
+```{r}
+ventas_desestacionalizadas = (T$x)/(T$seasonal)
+x3 = 1:16
+y3 = ventas_desestacionalizadas
+N3 = lm(y3~x3)
+N3
+plot(x3, y3, type = "l")
+abline(N3, col = "red")
+text(6, 7, "ventas = -3.5443 + 0.4847 trimestre")
+```
+En esta grafica se representan lo que hemos viniendo sanalando previamente, los resultados actuales y la linea de tendencia que demuestra el crecimiento constante de las ventas de los televisores.
+
+```{r}
+f = function(x) {-3.5443 + 0.4847*x}
+# Los ídices estacionales son: 
+a1 = T$seasonal[1]
+a2 = T$seasonal[2]
+a3 = T$seasonal[3]
+a4 = T$seasonal[4];
+f(17)*a1*1000
+f(18)*a2*1000
+f(19)*a3*1000
+f(20)*a4*1000
+```
+
+
+ahora bien el analizar las tendencias y los valores reales son importantes, mas es de mayor relevancia el saber como utilizarlos para realizar pronosticos futuros.
+A continuacion se presentaran 3 graficas las cuales representan el modelo original y un modelo de prediccion (azul).
+# Suavizamiento por promedios móviles
+```{r}
+p = NA
+e = NA
+for(i in 1:(n-3)){p[i+3]=(y[i]+y[i+1]+y[i+2])/3; e[i+3] = p[i+3] - y[i+3]}
+```
+```{r}
+# Utiliza data.frame() para organizar una tabla:
+T=data.frame(t,p,y,e^2)
+# Calcula el cuadrado medio del errores sin NA:
+CME=mean(e^2,na.rm=TRUE)
+```
+```{r}
+# Utiliza plot() para graficar:
+plot(t, y, type="o", col="red")
+x = (3+1):n
+lines(x,p[x],type="o",col="blue")
+```
+
+
+# Suavizamiento por promedios móviles ponderados
+```{r}
+p2 = NA
+e2 = NA
+y = ventas
+for(i in 1:(n-3)){p2[i+3]=(1/6)*y[i]+(2/6)*y[i+1]+(3/6)*y[i+2];
+e2[i+3] = p2[i+3] - y[i+3]}
+```
+```{r}
+# Utiliza data.frame() para organizar una tabla:
+T2=data.frame(t,p2,y,e2^2)
+# Calcula el cuadrado medio del errores sin NA:
+CME2=mean(e2^2,na.rm=TRUE)
+```
+```{r}
+# Utiliza plot() para graficar:
+plot(t, y, type="o", col="red")
+x = (3+1):n
+lines(x,p2[x],type="o",col="blue")
+```
+
+# Suavizamiento exponencial
+```{r}
+p3 = NA
+e3 = NA
+p3[1]=y[1]
+a=.2
+y=ventas
+for(i in 2:n){p3[i]=a*y[i-1]+(1-a)*p3[i-1];e3[i] = y[i]- p3[i]}
+```
+```{r}
+# Utiliza data.frame() para organizar una tabla:
+T3 = data.frame(t,p3,y,e3^2)
+# Calcula el cuadrado medio del errores sin NA:
+CME3 = mean(e3^2,na.rm=TRUE)
+```
+```{r}
+# Utiliza plot() para graficar:
+plot(t, y, type="o", col="red")
+x = 2:n
+lines(x,p3[x],type="o",col="blue")
+```
+Estas tres graficas representan diferentes modelos de prediccion en comparacion a los datos reales. Todas estas tienen en comun una tendencia positiva en la prediccion que es representada por la linea azul. Varian poco pero todas tienden a represetar un comportamiento parecido a la original que es de ayuda a hacer predicciones estimadas a los valores reales.
+
